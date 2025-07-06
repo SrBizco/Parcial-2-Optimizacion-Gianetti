@@ -1,0 +1,191 @@
+﻿using UnityEngine;
+using System.Collections.Generic;
+
+public class GameManager : MonoBehaviour
+{
+    private List<Player> players = new List<Player>();
+    private List<Enemy> enemies = new List<Enemy>();
+
+    private List<Character> turnOrder = new List<Character>();
+    private int currentIndex = 0;
+    private bool gameOver = false;
+
+    public Player CurrentPlayer { get; private set; }
+
+    public void RegisterPlayers(List<Player> playerList)
+    {
+        players = playerList;
+    }
+
+    public void RegisterEnemies(List<Enemy> enemyList)
+    {
+        enemies = enemyList;
+    }
+
+    public void BuildTurnOrder()
+    {
+        turnOrder.Clear();
+
+        var fighter = players.Find(p => p.name.Contains("Fighter"));
+        var ranged = players.Find(p => p.name.Contains("Ranged"));
+        var healer = players.Find(p => p.name.Contains("Healer"));
+
+        var enemy1 = enemies.Find(e => e.name.Contains("Enemy1"));
+        var enemy2 = enemies.Find(e => e.name.Contains("Enemy2"));
+
+        if (fighter != null) turnOrder.Add(fighter);
+        if (enemy1 != null) turnOrder.Add(enemy1);
+        if (ranged != null) turnOrder.Add(ranged);
+        if (enemy2 != null) turnOrder.Add(enemy2);
+        if (healer != null) turnOrder.Add(healer);
+    }
+
+    public void StartCombat()
+    {
+        if (turnOrder.Count > 0)
+            StartNextTurn();
+    }
+
+    private void StartNextTurn()
+    {
+        if (gameOver) return;
+
+        if (CheckDefeatConditions())
+        {
+            Debug.Log("¡Derrota! Un jugador murió mientras había enemigos.");
+            gameOver = true;
+            return;
+        }
+
+        if (CheckVictoryConditions())
+        {
+            gameOver = true;
+            return;
+        }
+
+        Character current = turnOrder[currentIndex];
+        if (current == null)
+        {
+            Debug.Log($"[Turn DEBUG] Character en índice {currentIndex} es NULL. Avanzando índice.");
+            NextIndex();
+            return;
+        }
+
+        Debug.Log($"[Turn DEBUG] Current: {current.name} — Tipo: {current.GetType()} — Index: {currentIndex}");
+
+        if (current is Player player)
+        {
+            if (player.CurrentHP > 0)
+            {
+                CurrentPlayer = player; // ✅ Guardar el player actual
+                player.StartTurn();
+                Debug.Log($"Turno manual de {player.name}");
+            }
+            else
+            {
+                NextIndex();
+            }
+        }
+        else if (current is Enemy enemy)
+        {
+            CurrentPlayer = null; // ✅ No hay player actual si es enemigo
+            if (enemy.CurrentHP > 0)
+            {
+                Debug.Log($"Turno IA de {enemy.name}");
+                enemy.StartTurn(players);
+            }
+            else
+            {
+                NextIndex();
+            }
+        }
+    }
+
+    public void NextIndex()
+    {
+        currentIndex++;
+        if (currentIndex >= turnOrder.Count)
+            currentIndex = 0;
+
+        StartNextTurn();
+    }
+
+    private bool CheckDefeatConditions()
+    {
+        bool enemiesAlive = enemies.Exists(e => e != null && e.CurrentHP > 0);
+
+        if (enemiesAlive)
+        {
+            foreach (var p in players)
+            {
+                if (p == null || p.CurrentHP <= 0)
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
+    private bool CheckVictoryConditions()
+    {
+        bool noEnemiesAlive = enemies.TrueForAll(e => e == null || e.CurrentHP <= 0);
+
+        if (noEnemiesAlive)
+        {
+            int alivePlayers = 0;
+            Player winner = null;
+
+            foreach (var p in players)
+            {
+                if (p != null && p.CurrentHP > 0)
+                {
+                    alivePlayers++;
+                    winner = p;
+                }
+            }
+
+            if (alivePlayers == 1)
+            {
+                Debug.Log($"¡Victoria! {winner.name} ganó la partida.");
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public List<Player> GetPlayers() => players;
+    public List<Enemy> GetEnemies() => enemies;
+
+    public bool IsPositionOccupied(Vector2Int pos)
+    {
+        foreach (var p in players)
+        {
+            if (p != null && p.GridPosition == pos && p.CurrentHP > 0)
+                return true;
+        }
+        foreach (var e in enemies)
+        {
+            if (e != null && e.GridPosition == pos && e.CurrentHP > 0)
+                return true;
+        }
+        return false;
+    }
+
+    public void NotifyDeath(Character deadCharacter)
+    {
+        int index = turnOrder.IndexOf(deadCharacter);
+        if (index != -1)
+        {
+            turnOrder[index] = null;
+        }
+    }
+
+    public void OnCharacterEndTurn(Character character)
+    {
+        if (turnOrder[currentIndex] == character)
+        {
+            NextIndex();
+        }
+    }
+}
