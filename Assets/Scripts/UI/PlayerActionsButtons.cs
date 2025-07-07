@@ -11,10 +11,13 @@ public class PlayerActionButtons : MonoBehaviour
 
     private void Start()
     {
-        meleeButton.onClick.AddListener(OnMelee);
-        rangedButton.onClick.AddListener(OnRanged);
-        healSelfButton.onClick.AddListener(OnHealSelf);
-        healAlliesButton.onClick.AddListener(OnHealAllies);
+        AddListeners();
+    }
+
+    private void OnDestroy()
+    {
+        RemoveListeners();
+
     }
 
     void OnMelee()
@@ -43,5 +46,20 @@ public class PlayerActionButtons : MonoBehaviour
         var player = gameManager.CurrentPlayer;
         if (player != null && player.isMyTurn && player.CanHealOthers)
             player.HealOther();
+    }
+    private void AddListeners()
+    {
+        meleeButton.onClick.AddListener(OnMelee);
+        rangedButton.onClick.AddListener(OnRanged);
+        healSelfButton.onClick.AddListener(OnHealSelf);
+        healAlliesButton.onClick.AddListener(OnHealAllies);
+    }
+
+    private void RemoveListeners()
+    {
+        meleeButton.onClick.RemoveListener(OnMelee);
+        rangedButton.onClick.RemoveListener(OnRanged);
+        healSelfButton.onClick.RemoveListener(OnHealSelf);
+        healAlliesButton.onClick.RemoveListener(OnHealAllies);
     }
 }

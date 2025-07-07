@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
+using System.Collections;
 
 public class Enemy : Character
 {
@@ -15,9 +16,21 @@ public class Enemy : Character
         allPlayers = players;
         Debug.Log($"{gameObject.name} empieza su turno.");
 
-        MoveRandom();
+        HighlightAsActive();
 
-        Player target = FindNearestPlayer();
+        StartCoroutine(ExecuteEnemyTurn());
+    }
+
+    private IEnumerator ExecuteEnemyTurn()
+    {
+        yield return new WaitForSeconds(0.5f);
+
+        MoveRandom();
+        Debug.Log($"{gameObject.name} se movió.");
+
+        yield return new WaitForSeconds(0.5f);
+
+        Player target = gameManager.FindNearest(GridPosition, allPlayers);
         if (target != null)
         {
             float dist = Vector2Int.Distance(GridPosition, target.GridPosition);
@@ -29,6 +42,8 @@ public class Enemy : Character
             else
                 Debug.Log($"{gameObject.name} no alcanzó a {target.name}.");
         }
+
+        yield return new WaitForSeconds(0.5f);
 
         EndTurn();
     }
@@ -43,7 +58,7 @@ public class Enemy : Character
         Vector2Int dir = directions[Random.Range(0, directions.Length)];
         Vector2Int newPos = GridPosition + dir;
 
-        if (newPos.x >= 0 && newPos.x < gridManager.Columns && newPos.y >= 0 && newPos.y < gridManager.Rows)
+        if (gridManager.IsValidPosition(newPos))
         {
             if (!gameManager.IsPositionOccupied(newPos))
             {
@@ -55,34 +70,6 @@ public class Enemy : Character
                 Debug.Log($"{gameObject.name} no pudo moverse, posición ocupada.");
             }
         }
-    }
-
-    private Player FindNearestPlayer()
-    {
-        List<Player> candidates = new List<Player>();
-        float minDist = float.MaxValue;
-
-        foreach (var player in allPlayers)
-        {
-            if (player == null || player.CurrentHP <= 0) continue;
-
-            float dist = Vector2Int.Distance(GridPosition, player.GridPosition);
-            if (dist < minDist)
-            {
-                minDist = dist;
-                candidates.Clear();
-                candidates.Add(player);
-            }
-            else if (Mathf.Approximately(dist, minDist))
-            {
-                candidates.Add(player);
-            }
-        }
-
-        if (candidates.Count > 0)
-            return candidates[Random.Range(0, candidates.Count)];
-
-        return null;
     }
 
     private void EndTurn()

@@ -42,65 +42,52 @@ public class GridManager : MonoBehaviour
 
     void SpawnCharacters()
     {
-        var fighterPos = GetRandomFreePosition();
-        var healerPos = GetRandomFreePosition();
-        var rangedPos = GetRandomFreePosition();
-        var enemy1Pos = GetRandomFreePosition();
-        var enemy2Pos = GetRandomFreePosition();
-
-        var fighter = Instantiate(fighterPrefab, GridToWorld(fighterPos), Quaternion.identity).GetComponent<Player>();
-        var healer = Instantiate(healerPrefab, GridToWorld(healerPos), Quaternion.identity).GetComponent<Player>();
-        var ranged = Instantiate(rangedPrefab, GridToWorld(rangedPos), Quaternion.identity).GetComponent<Player>();
-        Debug.Log($"Ranged componente obtenido: {ranged}");
-
-        var enemy1 = Instantiate(enemy1Prefab, GridToWorld(enemy1Pos), Quaternion.identity).GetComponent<Enemy>();
-        var enemy2 = Instantiate(enemy2Prefab, GridToWorld(enemy2Pos), Quaternion.identity).GetComponent<Enemy>();
-
-        fighter.InitializeCharacter();
-        healer.InitializeCharacter();
-        ranged.InitializeCharacter();
-        enemy1.InitializeCharacter();
-        enemy2.InitializeCharacter();
-
-        fighter.GridPosition = fighterPos;
-        healer.GridPosition = healerPos;
-        ranged.GridPosition = rangedPos;
-        enemy1.GridPosition = enemy1Pos;
-        enemy2.GridPosition = enemy2Pos;
-
-        fighter.SetGridManager(this);
-        healer.SetGridManager(this);
-        ranged.SetGridManager(this);
-        enemy1.SetGridManager(this);
-        enemy2.SetGridManager(this);
-
-        fighter.SetUIManager(uiManager);
-        healer.SetUIManager(uiManager);
-        ranged.SetUIManager(uiManager);
-        enemy1.SetUIManager(uiManager);
-        enemy2.SetUIManager(uiManager);
-
-
-        fighter.SetGameManager(gameManager);
-        healer.SetGameManager(gameManager);
-        ranged.SetGameManager(gameManager);
-        enemy1.SetGameManager(gameManager);
-        enemy2.SetGameManager(gameManager);
-
-        fighter.transform.position = GridToWorld(fighter.GridPosition);
-        healer.transform.position = GridToWorld(healer.GridPosition);
-        ranged.transform.position = GridToWorld(ranged.GridPosition);
-        enemy1.transform.position = GridToWorld(enemy1.GridPosition);
-        enemy2.transform.position = GridToWorld(enemy2.GridPosition);
-
-        var playerList = new List<Player> { fighter, healer, ranged };
-        var enemyList = new List<Enemy> { enemy1, enemy2 };
+        var playerList = SpawnPlayers();
+        var enemyList = SpawnEnemies();
 
         gameManager.RegisterPlayers(playerList);
         gameManager.RegisterEnemies(enemyList);
         gameManager.BuildTurnOrder();
         gameManager.StartCombat();
         uiManager.BuildPanels(enemyList, playerList);
+    }
+
+    List<Player> SpawnPlayers()
+    {
+        var fighter = SpawnPlayer(fighterPrefab, GetRandomFreePosition());
+        var healer = SpawnPlayer(healerPrefab, GetRandomFreePosition());
+        var ranged = SpawnPlayer(rangedPrefab, GetRandomFreePosition());
+
+        return new List<Player> { fighter, healer, ranged };
+    }
+
+    List<Enemy> SpawnEnemies()
+    {
+        var enemy1 = SpawnEnemy(enemy1Prefab, GetRandomFreePosition());
+        var enemy2 = SpawnEnemy(enemy2Prefab, GetRandomFreePosition());
+
+        return new List<Enemy> { enemy1, enemy2 };
+    }
+
+    Player SpawnPlayer(GameObject prefab, Vector2Int position)
+    {
+        var player = Instantiate(prefab, GridToWorld(position), Quaternion.identity).GetComponent<Player>();
+        SetupCharacter(player, position);
+        return player;
+    }
+
+    Enemy SpawnEnemy(GameObject prefab, Vector2Int position)
+    {
+        var enemy = Instantiate(prefab, GridToWorld(position), Quaternion.identity).GetComponent<Enemy>();
+        SetupCharacter(enemy, position);
+        return enemy;
+    }
+
+    void SetupCharacter(Character character, Vector2Int position)
+    {
+        character.InitializeCharacter();
+        character.InitializeReferences(this, gameManager, uiManager);
+        character.SetPosition(position, this);
     }
 
     Vector2Int GetRandomFreePosition()
@@ -118,5 +105,10 @@ public class GridManager : MonoBehaviour
     public Vector3 GridToWorld(Vector2Int gridPos)
     {
         return new Vector3(gridPos.x * cellSize + cellSize / 2f, gridPos.y * cellSize + cellSize / 2f, 0);
+    }
+
+    public bool IsValidPosition(Vector2Int pos)
+    {
+        return pos.x >= 0 && pos.x < columns && pos.y >= 0 && pos.y < rows;
     }
 }

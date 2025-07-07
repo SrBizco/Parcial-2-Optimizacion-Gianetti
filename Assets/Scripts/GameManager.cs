@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
+using System.Linq;
 
 public class GameManager : MonoBehaviour
 {
@@ -66,38 +67,33 @@ public class GameManager : MonoBehaviour
         Character current = turnOrder[currentIndex];
         if (current == null)
         {
-            Debug.Log($"[Turn DEBUG] Character en índice {currentIndex} es NULL. Avanzando índice.");
             NextIndex();
             return;
         }
 
-        Debug.Log($"[Turn DEBUG] Current: {current.name} — Tipo: {current.GetType()} — Index: {currentIndex}");
-
         if (current is Player player)
         {
-            if (player.CurrentHP > 0)
-            {
-                CurrentPlayer = player; // ✅ Guardar el player actual
-                player.StartTurn();
-                Debug.Log($"Turno manual de {player.name}");
-            }
-            else
+            if (player.CurrentHP <= 0)
             {
                 NextIndex();
+                return;
             }
+
+            CurrentPlayer = player;
+            player.StartTurn();
+            return;
         }
-        else if (current is Enemy enemy)
+
+        if (current is Enemy enemy)
         {
-            CurrentPlayer = null; // ✅ No hay player actual si es enemigo
-            if (enemy.CurrentHP > 0)
-            {
-                Debug.Log($"Turno IA de {enemy.name}");
-                enemy.StartTurn(players);
-            }
-            else
+            if (enemy.CurrentHP <= 0)
             {
                 NextIndex();
+                return;
             }
+
+            CurrentPlayer = null;
+            enemy.StartTurn(players);
         }
     }
 
@@ -170,6 +166,34 @@ public class GameManager : MonoBehaviour
                 return true;
         }
         return false;
+    }
+
+    public T FindNearest<T>(Vector2Int fromPos, List<T> candidates) where T : Character
+    {
+        List<T> nearestList = new List<T>();
+        float minDist = float.MaxValue;
+
+        foreach (var c in candidates)
+        {
+            if (c == null || c.CurrentHP <= 0) continue;
+
+            float dist = Vector2Int.Distance(fromPos, c.GridPosition);
+            if (dist < minDist)
+            {
+                minDist = dist;
+                nearestList.Clear();
+                nearestList.Add(c);
+            }
+            else if (Mathf.Approximately(dist, minDist))
+            {
+                nearestList.Add(c);
+            }
+        }
+
+        if (nearestList.Count > 0)
+            return nearestList[Random.Range(0, nearestList.Count)];
+
+        return null;
     }
 
     public void NotifyDeath(Character deadCharacter)

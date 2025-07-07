@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
+using System.Linq;
 
 public class Player : Character
 {
@@ -40,7 +41,7 @@ public class Player : Character
         {
             Vector2Int newPos = GridPosition + direction;
 
-            if (newPos.x >= 0 && newPos.x < gridManager.Columns && newPos.y >= 0 && newPos.y < gridManager.Rows)
+            if (gridManager.IsValidPosition(newPos))
             {
                 if (!gameManager.IsPositionOccupied(newPos))
                 {
@@ -61,10 +62,13 @@ public class Player : Character
         }
     }
 
-    // 👉 Públicos para UI
     public void MeleeAttack()
     {
-        var target = FindNearestTarget();
+        var possibleTargets = gameManager.GetPlayers().Where(p => p != this).Cast<Character>().ToList();
+        possibleTargets.AddRange(gameManager.GetEnemies());
+
+        var target = gameManager.FindNearest(GridPosition, possibleTargets);
+
         if (target != null)
             meleeStrategy.Execute(this, target);
         else
@@ -75,7 +79,11 @@ public class Player : Character
 
     public void RangedAttack()
     {
-        var target = FindNearestTarget();
+        var possibleTargets = gameManager.GetPlayers().Where(p => p != this).Cast<Character>().ToList();
+        possibleTargets.AddRange(gameManager.GetEnemies());
+
+        var target = gameManager.FindNearest(GridPosition, possibleTargets);
+
         if (target != null)
             rangedStrategy.Execute(this, target);
         else
@@ -92,7 +100,7 @@ public class Player : Character
 
     public void HealOther()
     {
-        var target = FindNearestAlly();
+        var target = gameManager.FindNearest(GridPosition, gameManager.GetPlayers().Where(p => p != this).ToList());
         if (target != null)
             healOthersStrategy.Execute(this, target);
         else
@@ -101,85 +109,12 @@ public class Player : Character
         EndTurn();
     }
 
-    private Character FindNearestTarget()
-    {
-        List<Character> candidates = new List<Character>();
-        float minDist = float.MaxValue;
-
-        foreach (var enemy in gameManager.GetEnemies())
-        {
-            if (enemy == null || enemy.CurrentHP <= 0) continue;
-
-            float dist = Vector2Int.Distance(GridPosition, enemy.GridPosition);
-            if (dist < minDist)
-            {
-                minDist = dist;
-                candidates.Clear();
-                candidates.Add(enemy);
-            }
-            else if (Mathf.Approximately(dist, minDist))
-            {
-                candidates.Add(enemy);
-            }
-        }
-
-        foreach (var player in gameManager.GetPlayers())
-        {
-            if (player == null || player == this || player.CurrentHP <= 0) continue;
-
-            float dist = Vector2Int.Distance(GridPosition, player.GridPosition);
-            if (dist < minDist)
-            {
-                minDist = dist;
-                candidates.Clear();
-                candidates.Add(player);
-            }
-            else if (Mathf.Approximately(dist, minDist))
-            {
-                candidates.Add(player);
-            }
-        }
-
-        if (candidates.Count > 0)
-            return candidates[Random.Range(0, candidates.Count)];
-
-        return null;
-    }
-
-    private Player FindNearestAlly()
-    {
-        var players = gameManager.GetPlayers();
-        List<Player> candidates = new List<Player>();
-        float minDist = float.MaxValue;
-
-        foreach (var ally in players)
-        {
-            if (ally == null || ally == this || ally.CurrentHP <= 0) continue;
-
-            float dist = Vector2Int.Distance(GridPosition, ally.GridPosition);
-            if (dist < minDist)
-            {
-                minDist = dist;
-                candidates.Clear();
-                candidates.Add(ally);
-            }
-            else if (Mathf.Approximately(dist, minDist))
-            {
-                candidates.Add(ally);
-            }
-        }
-
-        if (candidates.Count > 0)
-            return candidates[Random.Range(0, candidates.Count)];
-
-        return null;
-    }
-
     public void StartTurn()
     {
         isMyTurn = true;
         justStartedTurn = true;
         movesLeft = Speed;
+        HighlightAsActive();
         Debug.Log($"{gameObject.name} empieza su turno con {movesLeft} movimientos disponibles.");
     }
 

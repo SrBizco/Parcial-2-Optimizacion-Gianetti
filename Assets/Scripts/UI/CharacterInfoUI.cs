@@ -4,9 +4,9 @@ using TMPro;
 
 public class CharacterInfoUI : MonoBehaviour
 {
-    public Image characterSpriteImage;
-    public TMP_Text nameText;
-    public TMP_Text hpText;
+    [SerializeField] private Image characterSpriteImage;
+    [SerializeField] private TMP_Text nameText;
+    [SerializeField] private TMP_Text hpText;
     public Character linkedCharacter;
 
     public void SetInfo(Sprite sprite, string name, int hp)

@@ -3,16 +3,16 @@ using System.Collections.Generic;
 
 public class CharacterUIManager : MonoBehaviour
 {
-    public Transform enemyInfoContainer; // ✅ Nuevo: container interno
-    public Transform playerInfoContainer; // ✅ Nuevo: container interno
-    public GameObject characterInfoPrefab;
+    [SerializeField] private Transform enemyInfoContainer;
+    [SerializeField] private Transform playerInfoContainer;
+    [SerializeField] private GameObject characterInfoPrefab;
+    [SerializeField] private GameObject activePlayerFrame;
 
     private List<CharacterInfoUI> enemyUIList = new List<CharacterInfoUI>();
     private List<CharacterInfoUI> playerUIList = new List<CharacterInfoUI>();
 
     public void BuildPanels(List<Enemy> enemies, List<Player> players)
     {
-        // Limpiar solo containers internos (NO borra textos fijos)
         foreach (Transform child in enemyInfoContainer)
             Destroy(child.gameObject);
 
@@ -22,7 +22,6 @@ public class CharacterUIManager : MonoBehaviour
         enemyUIList.Clear();
         playerUIList.Clear();
 
-        // Crear UI para enemigos
         foreach (var enemy in enemies)
         {
             var uiObj = Instantiate(characterInfoPrefab, enemyInfoContainer);
@@ -32,7 +31,6 @@ public class CharacterUIManager : MonoBehaviour
             enemyUIList.Add(ui);
         }
 
-        // Crear UI para players
         foreach (var player in players)
         {
             var uiObj = Instantiate(characterInfoPrefab, playerInfoContainer);
@@ -60,7 +58,6 @@ public class CharacterUIManager : MonoBehaviour
 
     public void RemovePanel(Character character)
     {
-        // Para enemies
         for (int i = 0; i < enemyUIList.Count; i++)
         {
             if (enemyUIList[i].linkedCharacter == character)
@@ -71,7 +68,6 @@ public class CharacterUIManager : MonoBehaviour
             }
         }
 
-        // Para players
         for (int i = 0; i < playerUIList.Count; i++)
         {
             if (playerUIList[i].linkedCharacter == character)
@@ -79,6 +75,33 @@ public class CharacterUIManager : MonoBehaviour
                 Destroy(playerUIList[i].gameObject);
                 playerUIList.RemoveAt(i);
                 break;
+            }
+        }
+    }
+    public void HighlightActivePlayer(Character activeCharacter)
+    {
+
+        foreach (var ui in enemyUIList)
+        {
+            if (ui.linkedCharacter == activeCharacter)
+            {
+                activePlayerFrame.SetActive(true);
+                activePlayerFrame.transform.SetParent(ui.transform, false);
+                activePlayerFrame.transform.SetAsFirstSibling();
+                activePlayerFrame.GetComponent<RectTransform>().anchoredPosition = Vector2.zero;
+                return;
+            }
+        }
+
+        foreach (var ui in playerUIList)
+        {
+            if (ui.linkedCharacter == activeCharacter)
+            {
+                activePlayerFrame.SetActive(true);
+                activePlayerFrame.transform.SetParent(ui.transform, false);
+                activePlayerFrame.transform.SetAsFirstSibling();
+                activePlayerFrame.GetComponent<RectTransform>().anchoredPosition = Vector2.zero;
+                return;
             }
         }
     }

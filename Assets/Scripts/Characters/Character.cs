@@ -28,7 +28,6 @@ public abstract class Character : MonoBehaviour
 
     private SpriteRenderer spriteRenderer;
 
-    // ✅ Obtener SpriteRenderer automáticamente
     private void Awake()
     {
         spriteRenderer = GetComponent<SpriteRenderer>();
@@ -43,22 +42,19 @@ public abstract class Character : MonoBehaviour
         CurrentHP = maxHP;
     }
 
-    public void SetGridManager(GridManager manager)
+    public void InitializeReferences(GridManager grid, GameManager gm, CharacterUIManager ui)
     {
-        gridManager = manager;
-    }
-
-    public void SetGameManager(GameManager manager)
-    {
-        gameManager = manager;
-    }
-
-    public void SetUIManager(CharacterUIManager ui)
-    {
+        gridManager = grid;
+        gameManager = gm;
         characterUIManager = ui;
     }
 
-    // ✅ Método público para obtener el sprite
+    public void SetPosition(Vector2Int gridPos, GridManager grid)
+    {
+        GridPosition = gridPos;
+        transform.position = grid.GridToWorld(gridPos);
+    }
+
     public Sprite GetCharacterSprite()
     {
         return spriteRenderer != null ? spriteRenderer.sprite : null;
@@ -71,7 +67,6 @@ public abstract class Character : MonoBehaviour
         {
             Die();
         }
-
         characterUIManager.UpdateHP(gameManager.GetEnemies(), gameManager.GetPlayers());
     }
 
@@ -90,5 +85,9 @@ public abstract class Character : MonoBehaviour
         gameManager.NotifyDeath(this);
         characterUIManager.RemovePanel(this);
         Destroy(gameObject);
+    }
+    public void HighlightAsActive()
+    {
+        characterUIManager.HighlightActivePlayer(this);
     }
 }
