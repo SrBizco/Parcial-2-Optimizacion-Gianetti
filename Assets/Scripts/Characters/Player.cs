@@ -23,7 +23,9 @@ public class Player : Character
             return;
         }
 
+#if UNITY_EDITOR || UNITY_STANDALONE
         HandleMovement();
+#endif
     }
 
     private void HandleMovement()
@@ -39,28 +41,38 @@ public class Player : Character
 
         if (direction != Vector2Int.zero)
         {
-            Vector2Int newPos = GridPosition + direction;
+            AttemptMove(direction);
+        }
+    }
 
-            if (gridManager.IsValidPosition(newPos))
+    private void AttemptMove(Vector2Int direction)
+    {
+        Vector2Int newPos = GridPosition + direction;
+
+        if (gridManager.IsValidPosition(newPos))
+        {
+            if (!gameManager.IsPositionOccupied(newPos))
             {
-                if (!gameManager.IsPositionOccupied(newPos))
-                {
-                    GridPosition = newPos;
-                    transform.position = gridManager.GridToWorld(GridPosition);
-                    movesLeft--;
-                    Debug.Log($"{gameObject.name} se movió. Movimientos restantes: {movesLeft}");
-                }
-                else
-                {
-                    Debug.Log($"{gameObject.name} no puede moverse, la posición está ocupada.");
-                }
+                GridPosition = newPos;
+                transform.position = gridManager.GridToWorld(GridPosition);
+                movesLeft--;
+                Debug.Log($"{gameObject.name} se movió. Movimientos restantes: {movesLeft}");
             }
             else
             {
-                Debug.Log($"{gameObject.name} no puede moverse fuera de la grilla.");
+                Debug.Log($"{gameObject.name} no puede moverse, la posición está ocupada.");
             }
         }
+        else
+        {
+            Debug.Log($"{gameObject.name} no puede moverse fuera de la grilla.");
+        }
     }
+
+    public void MoveUp() { if (isMyTurn && movesLeft > 0) AttemptMove(Vector2Int.up); }
+    public void MoveDown() { if (isMyTurn && movesLeft > 0) AttemptMove(Vector2Int.down); }
+    public void MoveLeft() { if (isMyTurn && movesLeft > 0) AttemptMove(Vector2Int.left); }
+    public void MoveRight() { if (isMyTurn && movesLeft > 0) AttemptMove(Vector2Int.right); }
 
     public void MeleeAttack()
     {
@@ -100,9 +112,10 @@ public class Player : Character
 
     public void HealOther()
     {
-        var target = gameManager.FindNearest(GridPosition, gameManager.GetPlayers().Where(p => p != this).ToList());
-        if (target != null)
-            healOthersStrategy.Execute(this, target);
+        var target = gameManager.GetPlayers().Where(p => p != this).ToList();
+        var nearest = gameManager.FindNearest(GridPosition, target);
+        if (nearest != null)
+            healOthersStrategy.Execute(this, nearest);
         else
             Debug.Log("No hay aliado válido para curar.");
 

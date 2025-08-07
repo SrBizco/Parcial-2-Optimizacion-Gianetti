@@ -13,6 +13,9 @@ public class GameManager : MonoBehaviour
 
     public Player CurrentPlayer { get; private set; }
 
+    [Header("Referencias UI")]
+    [SerializeField] private GameOverUI gameOverUI;
+
     public void RegisterPlayers(List<Player> playerList)
     {
         players = playerList;
@@ -55,6 +58,11 @@ public class GameManager : MonoBehaviour
         {
             Debug.Log("¡Derrota! Un jugador murió mientras había enemigos.");
             gameOver = true;
+            FindFirstObjectByType<AdsManager>().ShowInterstitialAd();
+
+            if (gameOverUI != null)
+                gameOverUI.ShowDefeat("Todos los jugadores murieron antes de eliminar a los enemigos.");
+
             return;
         }
 
@@ -143,6 +151,11 @@ public class GameManager : MonoBehaviour
             if (alivePlayers == 1)
             {
                 Debug.Log($"¡Victoria! {winner.name} ganó la partida.");
+                FindFirstObjectByType<AdsManager>().ShowInterstitialAd();
+
+                if (gameOverUI != null)
+                    gameOverUI.ShowVictory(winner.name);
+
                 return true;
             }
         }
